@@ -1,13 +1,9 @@
-#Code is similar to before but note the Adding Time section and the CSV Write control
 
-#most importantly for this code to run is to import OpenCV
 import cv2
 import csv
 import RPi.GPIO as GPIO
 GPIO.setwarnings(False)
 
-
-#adding time and date stuff and rearranging it
 from datetime import date, datetime
 
 today = date.today()
@@ -22,27 +18,21 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(LED,GPIO.OUT)
 
-# set up camera object called Cap which we will use to find OpenCV
-#cap = cv2.VideoCapture(0)
 
-# QR code detection Method
 
-#detector = cv2.QRCodeDetector()
-
-#This creates an Infinite loop to keep your camera searching for data at all times
 def searchforwifi():
-    cap = cv2.VideoCapture(0)
-    detector = cv2.QRCodeDetector()
+    cap = cv2.VideoCapture(0) #setting up capture
+    detector = cv2.QRCodeDetector() #setting up detector
     old=''
     while True:
         
-        # Below is the method to get a image of the QR code
+        # gets QR image
         _, img = cap.read()
         
-        # Below is the method to read the QR code by detetecting the bounding box coords and decoding the hidden QR data 
+        # how tor ead QR code 
         data, bbox, _ = detector.detectAndDecode(img)
         
-        # This is how we get that Blue Box around our Data. This will draw one, and then Write the Data along with the top
+        # Makes Camera feed look nice
         if(bbox is not None):
             bb_pts = bbox.astype(int).reshape(-1, 2)
             num_bb_pts = len(bb_pts)
@@ -55,19 +45,15 @@ def searchforwifi():
                         (bb_pts[0][0], bb_pts[0][1] - 10),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.5, (0, 255, 0), 2)
-            
-            #Below prints the found data to the below terminal (This we can easily expand on to capture the data to an Excel Sheet)
-            #You can also add content to before the pass. Say the system reads red it'll activate a Red LED and the same for Green.
             if data:
-                if old == data:
+                if old == data: #on second scan of QR code it'll break loop
                     cap.release()
                     cv2.destroyAllWindows()
                     break
                 print("data found: ", data)
                 
                 
-           #**** This location is where we are adding the ability for the code to capture the Data and write it to a Text file
-           #For this here we are writing the Information to Database.csv File located in the same directory (the desktop) as this code.     
+           #write data to file and format     
                 with open('Wifi_info.txt', mode='a') as txtfile:
                     txtfile.truncate(0)
                     old=data
@@ -101,22 +87,17 @@ def searchforwifi():
                     pass
             
                 
-        # Below will display the live camera feed to the Desktop on Raspberry Pi OS preview
+        #will show what camera sees
         cv2.imshow("code detector", img)
         
-        #At any point if you want to stop the Code all you need to do is press 'q' on your keyboard
+        #pressing Q will also break program
         if(cv2.waitKey(1) == ord("q")):
             break
 
 while True:
     button_push=GPIO.input(button)
     if button_push == 0:
-        GPIO.output(LED,GPIO.HIGH)
+        GPIO.output(LED,GPIO.HIGH) #lights button up while searching
         searchforwifi()
-#        cap.release()
-#        cv2.destroyAllWindows()
     else:
         GPIO.output(LED,GPIO.LOW)
-# When the code is stopped the below closes all the applications/windows that the above has created
-cap.release()
-cv2.destroyAllWindows()
